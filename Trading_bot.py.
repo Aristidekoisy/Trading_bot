@@ -1,0 +1,46 @@
+import requests
+import time
+import telegram
+import asyncio
+
+# === Configuration Telegram Bot ===
+bot_token = '7717721790:AAEMcT2sT3y8YRjt8LL4obwhUJBGpDDS1qE'
+chat_id = '7634674155'
+bot = telegram.Bot(token=bot_token)
+
+# === Liste des symboles à surveiller ===
+symbols = [
+    'USD/ZAR', 'USD/TRY', 'EUR/USD', 'BTC/USD', 'EUR/JPY',
+    'AUD/USD', 'GBP/JPY', 'EUR/AUD', 'USD/CHF', 'USD/CAD',
+    'USD/JPY', 'NZD/USD'
+]
+
+# === Fonction RSI + Signal + TP/SL ===
+def get_rsi_signal(symbol):
+    url = f'https://api.twelvedata.com/rsi?symbol={symbol}&interval=15min&apikey=9f5e01b7801d47c3832464745cbeea08'
+    response = requests.get(url)
+    data = response.json()
+
+    try:
+        rsi = float(data['values'][0]['rsi'])
+        if rsi < 30:
+            return f'BUY {symbol} (RSI: {rsi:.2f})\nTP: +50 pips\nSL: -30 pips'
+        elif rsi > 70:
+            return f'SELL {symbol} (RSI: {rsi:.2f})\nTP: +50 pips\nSL: -30 pips'
+        else:
+            return None
+    except:
+        print(f"Erreur sur {symbol}: {data}")
+        return None
+
+# === Boucle principale ===
+while True:
+    for symbol in symbols:
+        signal = get_rsi_signal(symbol)
+        if signal:
+            asyncio.get_event_loop().run_until_complete(
+                bot.send_message(chat_id=chat_id, text=f"Signal détecté : {signal}")
+            )
+            print(f"Signal envoyé pour {symbol}")
+    print("Le bot tourne... En attente du prochain check.")
+    time.sleep(900)  # 15 minutes
